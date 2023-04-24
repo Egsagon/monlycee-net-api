@@ -1,8 +1,8 @@
 import requests
 
 from ent import consts
-
 from ent import apps
+
 
 class ENT:
     
@@ -60,6 +60,8 @@ class ENT:
         # Check if authentificated
         if not self.session.cookies.get('XSRF-TOKEN'):
             raise ConnectionRefusedError('Invalid credentials.')
+    
+    # Apps
     
     @property
     def mail(self) -> apps.mails.Mail_app:
