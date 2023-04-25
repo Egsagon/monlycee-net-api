@@ -4,18 +4,30 @@ from ent.apps import base
 from ent.apps.base import User
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Generator
+from typing import Generator, Self
 from bs4 import BeautifulSoup as Soup
 
 # TODO add client var to all dataclasses
 
 @dataclass
 class Folder:
+    parent: 'Mail_app'
     name: str
     id: int
     path: str
     unread: int
     subfolders: list
+    
+    def get_mails(self,
+                  unread: bool = False,
+                  limit: int = 10) -> list['Mail']:
+        '''
+        Get all mails for this folder.
+        '''
+        
+        return self.parent.get_mails(unread = unread,
+                                     folder = self,
+                                     limit = limit)
 
 @dataclass
 class usersMailGroup:
@@ -25,7 +37,7 @@ class usersMailGroup:
     bcc: list[User]
     
     @classmethod
-    def parse(cls, data: dict, client: object) -> object:
+    def parse(cls, data: dict, client: object) -> Self:
         '''
         Build from ENT dict.
         '''
@@ -51,7 +63,7 @@ class Attachment:
     size: int
     
     @classmethod
-    def parse(cls, data: dict, mail: object) -> object:
+    def parse(cls, data: dict, mail: object) -> Self:
         '''
         Build from ENT dict.
         '''
@@ -72,8 +84,10 @@ class Attachment:
         Download the ressource.
         '''
         
-        with open(path, 'wb') as output:
-            raw = self.client.session.get(path)
+        if path[-1] != '/': path += '/'
+        
+        with open(path + self.name, 'wb') as output:
+            raw = self.client.get(self.url)
             output.write(raw.content)
 
 
@@ -91,7 +105,7 @@ class Mail:
     content_data: dict = None
     
     @classmethod
-    def parse(cls, data: dict, client: object) -> object:
+    def parse(cls, data: dict, client: object) -> Self:
         '''
         Build mail from ENT dict.
         '''
@@ -143,6 +157,35 @@ class Mail:
         
         if not self.content_data: self.fetch()
         return self.content_data.get('body')
+
+@dataclass
+class PreparedMail:
+    subject: str
+    content: str
+    attachments: list
+    user: usersMailGroup
+    
+    id: int = None
+    
+    @classmethod
+    def new(cls,
+            subject: str = None,
+            content: str = None,
+            to: list[User] = None,
+            cc: list[User] = [],
+            bcc: list[User] = [],
+            attachments: list[str] = []) -> Self:
+        '''
+        Create a new mail.
+        TODO - attachments upload
+        '''
+        
+        return cls(
+            subject = subject,
+            content = content,
+            attachments = attachments,
+            user = usersMailGroup(None, to, cc, bcc) # TODO fetch client data
+        )
         
         
 
@@ -178,7 +221,8 @@ class Mail_app(base.App):
         
         # Recursively build folders structure
         def rec(data: dict) -> Folder:
-            return Folder(name = data['folderName'],
+            return Folder(parent = self,
+                          name = data['folderName'],
                           id = int(data['id']),
                           path = data['path'],
                           unread = int(data['unread']),
@@ -190,7 +234,7 @@ class Mail_app(base.App):
     def get_mails(self,
                   unread: bool = False,
                   folder: Folder = None,
-                  limit: int = 10) -> Generator[Mail, None, None]:
+                  limit: int = 10) -> list[Mail]:
         '''
         Get a list of mails.
         '''
@@ -206,5 +250,31 @@ class Mail_app(base.App):
         
         # Parse mails
         return [Mail.parse(mail, self.client) for mail in mails]
+
+    def send(self, mail: PreparedMail) -> None:
+        '''
+        Send a mail object to the ENT.
+        '''
+        
+        # Attribute an id for the mail by sending empty draft
+        # m_id = self.client.get('zimbra/draft', 'POST') #.json().get('id')
+        
+        mail.id = self.client.get('zimbra/draft', 'POST', data = dict(
+            body = 'New Prepared request', to = [], cc = [], bcc = [], attachments = []
+        ), dump = True).json().get('id')
+        
+        url = f'zimbra/send?id={mail.id}'
+        
+        response = self.client.get(url, 'POST', data = dict(
+            attachments = mail.attachments,
+            body = mail.content,
+            subject = mail.subject,
+            to = mail.user.to,
+            cc = mail.user.cc,
+            bcc = mail.user.bcc
+        ), dump = True)
+        
+        return response.content
+
 
 # EOF

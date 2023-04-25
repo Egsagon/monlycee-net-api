@@ -1,3 +1,4 @@
+import json
 import requests
 
 from ent import consts
@@ -28,7 +29,8 @@ class ENT:
                 method: str = 'GET',
                 data: dict = None,
                 cache: bool = True,
-                complete_path = True) -> requests.Response:
+                complete_path = True,
+                dump: bool = False) -> requests.Response:
         '''
         Make a request to the target.
         '''
@@ -42,6 +44,7 @@ class ENT:
             return self.cache.get(key)
         
         # Send the request
+        if dump: data = json.dumps(data)
         response = self.session.request(method, url, data = data)
         
         if not response.ok:

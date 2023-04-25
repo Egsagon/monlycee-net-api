@@ -1,13 +1,11 @@
 import ent
 import json
 
+from ent.apps.mails import PreparedMail
+
 creds = json.load(open('creds.json'))
 client = ent.ENT(**creds)
 
-# print(client.mail.unread_amount)
+m = PreparedMail.new( 'test subject 2', 'test content', to = ['630016c2-e0cd-46c5-816d-53d029ba258b'])
 
-folders = client.mail.get_folders()
-
-mails = client.mail.get_mails(limit = 10)
-
-print(mails[1].attachments)
+print(client.mail.send(m))
