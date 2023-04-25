@@ -1,13 +1,13 @@
 import json
+from typing import Self
+from copy import deepcopy
+from datetime import datetime
+from dataclasses import dataclass
+
 from ent import consts
 from ent.apps import base
 from ent.apps.base import User
-from dataclasses import dataclass
-from datetime import date, datetime
-from typing import Generator, Self
-from bs4 import BeautifulSoup as Soup
 
-# TODO add client var to all dataclasses
 
 @dataclass
 class Folder:
@@ -28,6 +28,7 @@ class Folder:
         return self.parent.get_mails(unread = unread,
                                      folder = self,
                                      limit = limit)
+
 
 @dataclass
 class usersMailGroup:
@@ -51,6 +52,13 @@ class usersMailGroup:
             cc = [User(id = id, name = names[id]) for id in data.get('cc')],
             bcc = [User(id = id, name = names[id]) for id in data.get('bcc')],
         )
+    
+    def serialize(self, keys = ['to', 'cc', 'bcc']) -> None:
+        '''
+        Return a dict version of to, cc and bcc.
+        '''
+        
+        return {k: [u.id for u in getattr(self, k)] for k in keys}
 
 
 @dataclass
@@ -92,11 +100,45 @@ class Attachment:
 
 
 @dataclass
+class PreparedMail:
+    subject: str
+    content: str
+    attachments: list
+    user: usersMailGroup
+    
+    id: int = None
+    
+    @classmethod
+    def new(cls,
+            subject: str = None,
+            content: str = None,
+            to: list[User] = None,
+            cc: list[User] = [],
+            bcc: list[User] = [],
+            attachments: list[str] = []) -> Self:
+        '''
+        Create a new mail.
+        TODO - attachments upload
+        '''
+        
+        if not isinstance(to, list): to = [to]
+        if not isinstance(cc, list): cc = [cc]
+        if not isinstance(bcc, list): bcc = [bcc]
+        
+        return cls(
+            subject = subject,
+            content = content,
+            attachments = attachments,
+            user = usersMailGroup(None, to, cc, bcc) # TODO fetch client data
+        )
+
+
+@dataclass
 class Mail:
     client: object
     
     id: int
-    date: int
+    date: datetime
     subject: str
     unread: bool
     user: usersMailGroup
@@ -110,7 +152,7 @@ class Mail:
         Build mail from ENT dict.
         '''
         
-        mail_date = data.get('date') # TODO parse
+        mail_date = datetime.fromtimestamp(data.get('date') / 1000)
         
         return cls(
             client = client,
@@ -158,36 +200,35 @@ class Mail:
         if not self.content_data: self.fetch()
         return self.content_data.get('body')
 
-@dataclass
-class PreparedMail:
-    subject: str
-    content: str
-    attachments: list
-    user: usersMailGroup
-    
-    id: int = None
-    
-    @classmethod
-    def new(cls,
-            subject: str = None,
-            content: str = None,
-            to: list[User] = None,
-            cc: list[User] = [],
-            bcc: list[User] = [],
-            attachments: list[str] = []) -> Self:
+    def reply(self, mail: PreparedMail, force_redirect = False) -> None:
         '''
-        Create a new mail.
-        TODO - attachments upload
+        Reply to this message with a prepared mail.
+        
+        Arguments
+            mail: a PreparedMail instance.
+            force_redirect: Use the PreparedMail user group instead.
         '''
         
-        return cls(
-            subject = subject,
-            content = content,
-            attachments = attachments,
-            user = usersMailGroup(None, to, cc, bcc) # TODO fetch client data
-        )
+        users = mail.user if force_redirect else self.user
         
+        response = self.client.get(f'zimbra/send?In-Reply-To={self.id}', 'POST', data = dict(
+            attachments = mail.attachments,
+            body = mail.content,
+            subject = mail.subject,
+            **users.serialize()
+        ), dump = True)
         
+        return response
+
+    def transfer(self, to: list[User] | User) -> None:
+        '''
+        Transfer a mail to another user.
+        '''
+        
+        new = deepcopy(self)
+        new.user.to = to if isinstance(to, list) else [to]
+        self.client.mail.send(new) # TODO body not working
+
 
 class Mail_app(base.App):
     
@@ -257,8 +298,6 @@ class Mail_app(base.App):
         '''
         
         # Attribute an id for the mail by sending empty draft
-        # m_id = self.client.get('zimbra/draft', 'POST') #.json().get('id')
-        
         mail.id = self.client.get('zimbra/draft', 'POST', data = dict(
             body = 'New Prepared request', to = [], cc = [], bcc = [], attachments = []
         ), dump = True).json().get('id')
@@ -269,12 +308,10 @@ class Mail_app(base.App):
             attachments = mail.attachments,
             body = mail.content,
             subject = mail.subject,
-            to = mail.user.to,
-            cc = mail.user.cc,
-            bcc = mail.user.bcc
-        ), dump = True)
+            **mail.user.serialize()
+        ), dump = True).json()
         
-        return response.content
-
+        if not response.get('sent'):
+            raise ConnectionError('Failed to send email:', response)
 
 # EOF

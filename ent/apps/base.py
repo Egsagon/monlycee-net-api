@@ -1,6 +1,6 @@
-#                               #
+# ----------------------------- #
 # Structures common to all apps #
-#                               #
+# ----------------------------- #
 
 from typing import Self
 from dataclasses import dataclass
@@ -13,6 +13,7 @@ class App:
         '''
         
         self.client = client
+
 
 @dataclass
 class User:
