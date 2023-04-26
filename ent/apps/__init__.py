@@ -4,4 +4,9 @@ names = [
     'mails'
 ]
 
-from ent.apps import mails
+from ent.apps import (
+    base,
+    mails,
+    user,
+    userbase
+)

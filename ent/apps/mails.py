@@ -1,17 +1,21 @@
+from __future__ import annotations
+
 import json
-from typing import Self
 from copy import deepcopy
 from datetime import datetime
 from dataclasses import dataclass
+from typing import Self, TYPE_CHECKING
 
 from ent import consts
 from ent.apps import base
 from ent.apps.base import User
 
+if TYPE_CHECKING:
+    from ent.core import ENT as Core
 
 @dataclass
 class Folder:
-    parent: 'Mail_app'
+    parent: Mail_app
     name: str
     id: int
     path: str
@@ -63,7 +67,7 @@ class usersMailGroup:
 
 @dataclass
 class Attachment:
-    client: object
+    client: Core
     id: int
     url: str
     name: str
@@ -71,7 +75,7 @@ class Attachment:
     size: int
     
     @classmethod
-    def parse(cls, data: dict, mail: object) -> Self:
+    def parse(cls, data: dict, mail: Mail) -> Self:
         '''
         Build from ENT dict.
         '''
@@ -103,7 +107,7 @@ class Attachment:
 class PreparedMail:
     subject: str
     content: str
-    attachments: list
+    attachments: list[Attachment]
     user: usersMailGroup
     
     id: int = None
@@ -135,7 +139,7 @@ class PreparedMail:
 
 @dataclass
 class Mail:
-    client: object
+    client: Core
     
     id: int
     date: datetime
@@ -147,7 +151,7 @@ class Mail:
     content_data: dict = None
     
     @classmethod
-    def parse(cls, data: dict, client: object) -> Self:
+    def parse(cls, data: dict, client: Core) -> Self:
         '''
         Build mail from ENT dict.
         '''
@@ -232,7 +236,7 @@ class Mail:
 
 class Mail_app(base.App):
     
-    def __init__(self, client) -> None:
+    def __init__(self, client: Core) -> None:
         '''
         Represents the mails app.
         '''

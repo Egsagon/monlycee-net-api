@@ -28,6 +28,7 @@ class ENT:
                 path: str,
                 method: str = 'GET',
                 data: dict = None,
+                headers: dict = None,
                 cache: bool = True,
                 complete_path = True,
                 dump: bool = False) -> requests.Response:
@@ -37,7 +38,7 @@ class ENT:
         
         url = (consts.root if complete_path else '') + path
         
-        key = f'{method}:{path}{data}'
+        key = f'{method}:{path}{data}///{headers}'
         
         # Get from cache
         if cache and key in self.cache:
@@ -45,7 +46,7 @@ class ENT:
         
         # Send the request
         if dump: data = json.dumps(data)
-        response = self.session.request(method, url, data = data)
+        response = self.session.request(method, url, data = data, headers = headers)
         
         if not response.ok:
             raise ConnectionError('Failed to send request', key, 'Got response:', response.content)
@@ -76,5 +77,27 @@ class ENT:
             self.apps['mail'] = apps.mails.Mail_app(self)
         
         return self.apps['mail']
+
+    @property
+    def account(self) -> apps.user.User_app:
+        '''
+        User account data.
+        '''
+        
+        if not 'account' in self.apps:
+            self.apps['account'] = apps.user.User_app(self)
+        
+        return self.apps['account']
+    
+    @property
+    def userbase(self) -> apps.userbase.Userbase_App:
+        '''
+        Userbase.
+        '''
+        
+        if not 'userbase' in self.apps:
+            self.apps['userbase'] = apps.userbase.Userbase_App(self)
+        
+        return self.apps['userbase']
 
 # EOF
