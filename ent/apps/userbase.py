@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from ent import consts
 from ent.apps import base
 from typing import TYPE_CHECKING
 from ent.apps.base import User, Group

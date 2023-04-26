@@ -2,6 +2,8 @@ import ent, json
 
 client = ent.ENT(**json.load(open('creds.json')))
 
+rec = client.userbase.search_users('KEIZER')[0]
+
 print(
-    client.userbase.search_groups()[0]
+    client.rack.deposit(rec, 'test.txt')
 )

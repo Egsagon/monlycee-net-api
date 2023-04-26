@@ -31,7 +31,9 @@ class ENT:
                 headers: dict = None,
                 cache: bool = True,
                 complete_path = True,
-                dump: bool = False) -> requests.Response:
+                dump: bool = False,
+                inject_token: bool = False # TODO
+                ) -> requests.Response:
         '''
         Make a request to the target.
         '''
@@ -49,7 +51,7 @@ class ENT:
         response = self.session.request(method, url, data = data, headers = headers)
         
         if not response.ok:
-            raise ConnectionError('Failed to send request', key, 'Got response:', response.content)
+            raise ConnectionError('Failed to send request', key, 'Got response:', response.content, 'with code', response)
         
         return response
 
@@ -65,8 +67,7 @@ class ENT:
         if not self.session.cookies.get('XSRF-TOKEN'):
             raise ConnectionRefusedError('Invalid credentials.')
     
-    # Apps
-    
+    # ---------- Apps ---------- #
     @property
     def mail(self) -> apps.mails.Mail_app:
         '''
@@ -99,5 +100,27 @@ class ENT:
             self.apps['userbase'] = apps.userbase.Userbase_App(self)
         
         return self.apps['userbase']
+
+    @property
+    def exercises(self) -> apps.exercises.Exercises_App:
+        '''
+        Exercises app.
+        '''
+        
+        if not 'exercises' in self.apps:
+            self.apps['exercises'] = apps.exercises.Exercises_App(self)
+        
+        return self.apps['exercises']
+
+    @property
+    def rack(self) -> apps.rack.Rack_App:
+        '''
+        The Rack app.
+        '''
+        
+        if not 'rack' in self.apps:
+            self.apps['rack'] = apps.rack.Rack_App(self)
+        
+        return self.apps['rack']
 
 # EOF
