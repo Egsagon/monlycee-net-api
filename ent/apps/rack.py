@@ -33,6 +33,13 @@ class RacKFile:
     type: str = None
     size: int = None
     charset: str = None
+    
+    def download(self, path: str) -> None:
+        '''
+        Download the file to a location.
+        '''
+        
+        pass # TODO
 
 @dataclass
 class Rack:
