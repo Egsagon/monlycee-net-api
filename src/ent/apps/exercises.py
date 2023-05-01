@@ -1,3 +1,7 @@
+'''
+Exercises app (qcms).
+'''
+
 from __future__ import annotations
 
 from copy import deepcopy
@@ -79,3 +83,5 @@ class Exercises_App(base.App):
             
             for obj in data
         ]
+
+# EOF

@@ -1,10 +1,14 @@
-# ----------------------------- #
-# Structures common to all apps #
-# ----------------------------- #
+'''
+Basic structures shared between apps.
+'''
 
-from typing import Self
+from __future__ import annotations
 from dataclasses import dataclass
+from typing import Self, TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from ent.apps.userbook import UserbookData
+    from ent.core import ENT as Core
 
 class App:
     def __init__(self, client: object) -> None:
@@ -25,6 +29,9 @@ class User:
     classes: list[str] = None # TODO
     schools: list[str] = None # TODO
     
+    client: Core = None
+    userbook: UserbookData = None
+    
     @classmethod
     def from_id(cls, id: str) -> Self:
         '''
@@ -32,6 +39,17 @@ class User:
         '''
         
         return cls(id = id, name = '<unknown>')
+    
+    @property
+    def book(self) -> UserbookData:
+        '''
+        The userbook content of the user.
+        '''
+        
+        if self.userbook is None:
+            self.client.userbook.fetch(self)
+        
+        return self.userbook
 
 @dataclass
 class Group:

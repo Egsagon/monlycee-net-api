@@ -1,3 +1,7 @@
+'''
+Userbase app.
+'''
+
 from __future__ import annotations
 
 from ent.apps import base

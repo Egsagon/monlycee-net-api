@@ -1,15 +1,21 @@
+'''
+Core module of the API.
+'''
+
 import json
 import requests
 
 from ent import consts
 from ent import apps
 
-
 class ENT:
     
-    def __init__(self, username: str, password: str, login: bool = True) -> None:
+    def __init__(self,
+                 username: str,
+                 password: str,
+                 login: bool = True) -> None:
         '''
-        Represents a session to the open ENT.
+        Represents an ENT session.
         '''
         
         # Check credentials
@@ -21,6 +27,15 @@ class ENT:
         
         self.apps = {}
         self.cache = {}
+        
+        # Build apps
+        # TODO - Find a way to generate them dynamically
+        self.mail      = apps.mails.Mail_app(self)
+        self.account   = apps.user.User_app(self)
+        self.userbase  = apps.userbase.Userbase_App(self)
+        self.exercises = apps.exercises.Exercises_App(self)
+        self.rack      = apps.rack.Rack_App(self)
+        self.userbook  = apps.userbook.Userbook_App(self)
         
         if login: self.login()
     
@@ -46,6 +61,14 @@ class ENT:
         if cache and key in self.cache:
             return self.cache.get(key)
         
+        # Inject XRSF
+        if inject_token:
+            
+            xsrf = self.session.cookies['XSRF-TOKEN']
+            end = {'X-XSRF-TOKEN': xsrf}
+            
+            headers = end if headers is None else headers | end
+        
         # Send the request
         if dump: data = json.dumps(data)
         response = self.session.request(method, url, data = data, headers = headers)
@@ -66,61 +89,5 @@ class ENT:
         # Check if authentificated
         if not self.session.cookies.get('XSRF-TOKEN'):
             raise ConnectionRefusedError('Invalid credentials.')
-    
-    # ---------- Apps ---------- #
-    @property
-    def mail(self) -> apps.mails.Mail_app:
-        '''
-        Mail application of the ENT.
-        '''
-        
-        if not 'mail' in self.apps:
-            self.apps['mail'] = apps.mails.Mail_app(self)
-        
-        return self.apps['mail']
-
-    @property
-    def account(self) -> apps.user.User_app:
-        '''
-        User account data.
-        '''
-        
-        if not 'account' in self.apps:
-            self.apps['account'] = apps.user.User_app(self)
-        
-        return self.apps['account']
-    
-    @property
-    def userbase(self) -> apps.userbase.Userbase_App:
-        '''
-        Userbase.
-        '''
-        
-        if not 'userbase' in self.apps:
-            self.apps['userbase'] = apps.userbase.Userbase_App(self)
-        
-        return self.apps['userbase']
-
-    @property
-    def exercises(self) -> apps.exercises.Exercises_App:
-        '''
-        Exercises app.
-        '''
-        
-        if not 'exercises' in self.apps:
-            self.apps['exercises'] = apps.exercises.Exercises_App(self)
-        
-        return self.apps['exercises']
-
-    @property
-    def rack(self) -> apps.rack.Rack_App:
-        '''
-        The Rack app.
-        '''
-        
-        if not 'rack' in self.apps:
-            self.apps['rack'] = apps.rack.Rack_App(self)
-        
-        return self.apps['rack']
 
 # EOF
