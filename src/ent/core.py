@@ -36,6 +36,7 @@ class ENT:
         self.exercises = apps.exercises.Exercises_App(self)
         self.rack      = apps.rack.Rack_App(self)
         self.userbook  = apps.userbook.Userbook_App(self)
+        self.feed      = apps.feed.Feed_App(self)
         
         if login: self.login()
     

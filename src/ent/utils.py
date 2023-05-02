@@ -31,4 +31,17 @@ def get_filename(path: str) -> str:
     
     return os.path.split(path)[-1]
 
+def build_feed_filters(filters: dict[str, str | list[str]]) -> str:
+    '''
+    Build an appendable feed string filter. 
+    '''
+    
+    args = list(filters.items())
+    
+    for i, arg in enumerate(args):
+        if not isinstance(arg, list | tuple):
+            args[i][1] = [arg]
+    
+    return ''.join(f'&{name}={value}' for name, value in args)
+
 # EOF

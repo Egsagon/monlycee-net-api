@@ -9,7 +9,8 @@ from ent.apps import (
     userbase,
     exercises,
     rack,
-    userbook
+    userbook,
+    feed
 )
 
 # EOF
