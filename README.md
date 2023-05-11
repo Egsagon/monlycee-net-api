@@ -1,6 +1,11 @@
 # monlycee-net-api
 An API wrapper for ent.iledefrance.fr
 
+
+## Installation
+
+``pip install monlycee` or clone this repository
+
 ## Example usage
 
 
